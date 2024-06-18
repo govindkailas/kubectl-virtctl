@@ -14,22 +14,34 @@ jobs:
 
     if: github.actor == 'dependabot[bot]'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: automerge
         uses: actions/github-script@v7.0.1
         with:
           script: |
-            console.log(JSON.stringify(context.payload, null, 2)); // Debugging
             const github = require('@actions/github');
             const octokit = github.getOctokit('${{ secrets.GITHUB_TOKEN }}');
-            
-            octokit.pulls.createReview({
-              owner: context.payload.repository.owner.login,
-              repo: context.payload.repository.name,
-              pull_number: context.payload.pull_request.number,
-              event: 'APPROVE'
-            });
-            octokit.pulls.merge({
-              owner: context.payload.repository.owner.login,
-              repo: context.payload.repository.name,
-              pull_number: context.payload.pull_request.number
-            });
+
+            try {
+              octokit.pulls.createReview({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                pull_number: context.payload.pull_request.number,
+                event: 'APPROVE'
+              });
+
+              console.log("Pull Request approved by Dependabot");
+
+              await octokit.pulls.merge({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                pull_number: context.payload.pull_request.number
+              });
+
+              console.log("Pull Request merged successfully");
+            } catch (error) {
+              console.error("Error merging pull request:", error);
+              // You can optionally fail the workflow here for further investigation
+            }
